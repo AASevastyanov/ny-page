@@ -1,0 +1,700 @@
+:root {
+  --text: #1f2328;
+  --muted: rgba(31, 35, 40, .70);
+  --line: rgba(31, 35, 40, .14);
+  --panel: rgba(255, 255, 255, .82);
+  --panel2: rgba(255, 255, 255, .70);
+  --shadow: 0 14px 48px rgba(0, 0, 0, .18);
+  --shadow2: 0 10px 30px rgba(0, 0, 0, .16);
+  --radius: 18px;
+  --radius2: 14px;
+  --gold: rgb(209, 169, 73);
+  --green: rgb(34, 139, 88);
+  --red: rgb(195, 66, 63);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  color: var(--text);
+  overflow: hidden;
+  background-color: #f4f0e8;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* фон на весь экран по экрану */
+body[data-view="hub"] {
+  background-image: url("assets/main-page.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+body[data-view="door"][data-door="1"] {
+  background-image: url("assets/door-1.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+body[data-view="door"][data-door="2"] {
+  background-image: url("assets/door-2.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+body[data-view="door"][data-door="3"] {
+  background-image: url("assets/door-3.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+body[data-view="door"][data-door="4"] {
+  background-image: url("assets/door-4.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* затемнение для читабельности поверх фото */
+.view::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, .08), rgba(0, 0, 0, .03), rgba(0, 0, 0, .08));
+  backdrop-filter: saturate(1.18) contrast(1.06) brightness(1.06);
+  -webkit-backdrop-filter: saturate(1.18) contrast(1.06) brightness(1.06);
+  pointer-events: none;
+  display: none;
+}
+
+body[data-view="hub"] .view.hub::before {
+  display: block;
+}
+
+body[data-view="door"] .view.door::before {
+  display: block;
+}
+
+/* переключение экранов */
+.view {
+  position: fixed;
+  inset: 0;
+  display: none;
+}
+
+body[data-view="intro"] #introView {
+  display: flex;
+}
+
+body[data-view="hub"] #hubView {
+  display: block;
+}
+
+body[data-view="door"] #doorView {
+  display: block;
+}
+
+/* верхняя панель поверх фото */
+.topBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  z-index: 50;
+  background: rgba(155, 154, 154, 0.146);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.topLeft, .topRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 900;
+  letter-spacing: .2px;
+  font-size: 36px;
+  margin-left: 37vw;
+  color: white;
+  background: repeating-linear-gradient(
+  135deg,
+  #c8102f59 0 18%,
+  #ffffff66 18% 36%,
+  #c8102f68 36% 54%,
+  #ffffff5d 54% 72%
+);
+  padding: 10px 20px;
+  border-radius: 30px;
+}
+
+.pill {
+  background: rgba(255, 255, 255, .70);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, .10);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* кнопки */
+.btn {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .82);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 800;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, .10);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0px) scale(.99);
+}
+
+.btn.primary {
+  background: rgba(255, 255, 255, .92);
+  border-color: rgba(255, 255, 255, .92);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, .14);
+}
+
+.btn.ghost {
+  background: rgba(255, 255, 255, .52);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, .10);
+}
+
+/* Intro */
+.intro {
+  align-items: center;
+  justify-content: center;
+  background-image: url("assets/door-4.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.letterWrap {
+  width: min(760px, 92vw);
+  margin-top: 64px;
+  padding: 12px;
+}
+
+.letter {
+  background: rgba(255, 255, 255, .90);
+  border: 1px solid rgba(255, 255, 255, .90);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px;
+  transform: rotate(-1deg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+
+.letterTitle {
+  margin: 0 0 10px 0;
+  font-size: 26px;
+}
+
+.letterText {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.letterActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* HUB stage */
+.hubStage {
+  position: fixed;
+  inset: 0;
+  padding-top: 72px;
+}
+
+.doorsOverlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 68vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: start;
+  gap: 10vw;
+  padding: 0 7.5vw min(4vh, 48px);
+  z-index: 10;
+}
+
+/* кликабельные зоны дверей - прозрачные, чтобы видеть фото */
+.doorHit{
+  position: relative;
+  width: 13vw;
+  height: min(55vh, 560px);
+  background: rgba(255,255,255,0);
+  border: 2px solid rgba(255,255,255,.10);
+  border-radius: 16px;
+  cursor: pointer;
+  outline: none;
+  transform: translateZ(0);
+  transition: transform .14s ease, border-color .14s ease, filter .14s ease, box-shadow .14s ease;
+}
+
+/* внутреннее "заполнение светом" */
+.doorHit::before{
+  content:"";
+  position:absolute;
+  inset:-18px;
+  background: radial-gradient(circle at 50% 30%, rgba(255,230,170,.00) 0%, rgba(255,230,170,.00) 40%, rgba(255,220,140,.00) 70%);
+  opacity: 0;
+  transition: opacity .14s ease, transform .14s ease;
+  pointer-events:none;
+}
+
+/* мягкая дымка по краям + доп glow */
+.doorHit::after{
+  content:"";
+  position:absolute;
+  inset:-10px;
+  border-radius: 22px;
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.10) 0%, rgba(255,255,255,.00) 55%), radial-gradient(circle at 50% 75%, rgba(255,210,120,.12) 0%, rgba(255,210,120,.00) 60%);
+  opacity: 0;
+  transition: opacity .14s ease, transform .14s ease;
+  pointer-events:none;
+}
+
+.doorHit:hover{
+  transform: translateY(-3px) scale(1.01);
+  border-color: rgba(255,255,255,.42);
+  box-shadow: 0 0 120px rgba(255,210,120,.95), 0 0 55px rgba(255,255,255,.35), 0 26px 70px rgba(0,0,0,.22);
+  filter: saturate(1.12) brightness(1.06);
+}
+
+/* включаем "заливку" светом */
+.doorHit:hover::before{
+  opacity: 1;
+  transform: scale(1.02);
+  background: radial-gradient(circle at 50% 30%, rgba(255,240,200,.52) 0%, rgba(255,230,170,.26) 45%, rgba(255,215,120,.10) 70%, rgba(255,215,120,.00) 100%);
+}
+
+.doorHit:hover::after{
+  opacity: 1;
+  transform: scale(1.01);
+}
+
+/* фокус с клавиатуры тоже красиво */
+.doorHit:focus-visible{
+  border-color: rgba(255,255,255,.55);
+  box-shadow: 0 0 95px rgba(255,210,120,.72), 0 0 36px rgba(255,255,255,.28), 0 20px 55px rgba(0,0,0,.18);
+}
+
+.doorHit:disabled{
+  cursor:not-allowed;
+  opacity:.55;
+  filter: grayscale(.2);
+}
+
+
+.doorHit:active {
+  transform: translateY(0px);
+}
+
+/* подписи на двери: только статус и таймер */
+.doorStatus {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 900;
+  border: 1px solid rgba(255, 255, 255, .55);
+  background: rgba(255, 255, 255, .72);
+  color: var(--text);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, .12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.badge.locked {
+  background: rgba(255, 255, 255, 0.827);
+  color: rgba(31, 35, 40, .78);
+}
+
+.badge.open {
+  background: rgba(234, 228, 228, 0.78);
+}
+
+/* Door view */
+.roomStage {
+  position: fixed;
+  inset: 0;
+  padding-top: 84px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+}
+
+.questPanel {
+  width: min(980px, 94vw);
+  margin: 18px 0 38px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, .68);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background-color: rgba(130, 128, 59, 0.592);
+}
+
+.questHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.questTitle {
+  font-weight: 950;
+  font-size: 18px;
+  color: rgb(250, 246, 215);
+}
+
+.questSub {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+  color: rgb(250, 246, 215);
+}
+
+.questBody {
+  padding: 16px 18px 20px;
+}
+
+.stepper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.stepDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(31, 35, 40, .18);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, .10);
+}
+
+.stepDot.on {
+  background: rgba(209, 169, 73, .95);
+}
+
+.stepDot.done {
+  background: rgba(34, 139, 88, .85);
+}
+
+/* внутренние панели заданий */
+.board {
+  background: rgba(255, 255, 255, .70);
+  border: 1px solid rgba(31, 35, 40, .12);
+  border-radius: var(--radius2);
+  padding: 14px;
+  box-shadow: var(--shadow2);
+}
+
+.boardTitle {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hr {
+  height: 1px;
+  background: rgba(31, 35, 40, .12);
+  margin: 12px 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+input {
+  border: 1px solid rgba(31, 35, 40, .18);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, .92);
+  font-weight: 800;
+  outline: none;
+}
+
+/* выборки */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.choiceCard {
+  background: rgba(255, 255, 255, .80);
+  border: 1px solid rgba(31, 35, 40, .12);
+  border-radius: 16px;
+  padding: 12px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, .12);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.choiceCard:hover {
+  transform: translateY(-2px);
+}
+
+.choiceIcon {
+  font-size: 28px;
+}
+
+.choiceText {
+  font-weight: 950;
+  margin-top: 6px;
+}
+
+.quizQ {
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(31, 35, 40, .10);
+  border-radius: 16px;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.quizQ .q {
+  font-weight: 950;
+  margin-bottom: 6px;
+}
+
+.quizQ label {
+  display: block;
+  margin: 6px 0;
+  color: rgba(31, 35, 40, .86);
+  font-weight: 700;
+}
+
+.quizQ input[type="radio"] {
+  margin-right: 8px;
+}
+
+.canvasWrap {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 10px;
+}
+
+canvas {
+  border-radius: 16px;
+  border: 1px solid rgba(31, 35, 40, .12);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .14);
+  background: rgba(255, 255, 255, .35);
+}
+
+/* память */
+.memGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.memCard {
+  height: 54px;
+  border-radius: 14px;
+  border: 1px solid rgba(31, 35, 40, .12);
+  background: rgba(255, 255, 255, .78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, .12);
+  transition: transform .10s ease, filter .10s ease;
+}
+
+.memCard:hover {
+  transform: translateY(-1px);
+}
+
+.memCard.open {
+  background: rgba(255, 255, 255, .92);
+}
+
+.memCard.matched {
+  filter: saturate(1.2);
+}
+
+/* dialog */
+.dlg {
+  width: min(720px, 92vw);
+  border: 1px solid rgba(255, 255, 255, .70);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: var(--shadow);
+}
+
+.dlg::backdrop {
+  background: rgba(0, 0, 0, .28);
+}
+
+.dlgHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(31, 35, 40, .12);
+}
+
+.dlgTitle {
+  font-weight: 950;
+}
+
+.dlgBody {
+  padding: 12px 14px 16px;
+}
+
+.musicWrap{position:fixed;top:10px;left:10px;z-index:9999;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.70);background-color:rgba(255,255,255,.52);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 14px 36px rgba(0,0,0,.16);background-image:radial-gradient(circle at 18px 18px, rgba(255,255,255,.55) 0 2px, rgba(255,255,255,0) 3px),radial-gradient(circle at 42px 30px, rgba(255,255,255,.38) 0 1.6px, rgba(255,255,255,0) 2.8px),radial-gradient(circle at 70% 40%, rgba(255,255,255,.22) 0 2px, rgba(255,255,255,0) 3px),radial-gradient(circle at 55% 80%, rgba(255,220,140,.18) 0 40%, rgba(255,220,140,0) 70%);}
+
+.musicBtn{position:relative;width:44px;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,.70);cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:950;font-size:18px;color:rgba(255,255,255,.92);text-shadow:0 2px 10px rgba(0,0,0,.30);background-color:rgb(205,26,26);background-image:radial-gradient(circle at 28% 22%, rgba(255,255,255,.95) 0 10%, rgba(255,255,255,.18) 18%, rgba(255,255,255,0) 36%),radial-gradient(circle at 50% 70%, rgb(255,78,78) 0 12%, rgb(210,24,24) 55%, rgb(145,0,0) 100%);box-shadow:0 16px 30px rgba(0,0,0,.22),inset 0 10px 18px rgba(255,255,255,.18),inset 0 -12px 16px rgba(0,0,0,.22);transition:transform .14s ease,box-shadow .14s ease,filter .14s ease;}
+.musicBtn:hover{transform:translateY(-1px) scale(1.02);box-shadow:0 0 120px rgba(255,210,120,.85),0 0 60px rgba(255,255,255,.28),0 16px 30px rgba(0,0,0,.22),inset 0 10px 18px rgba(255,255,255,.18),inset 0 -12px 16px rgba(0,0,0,.22);filter:saturate(1.15) brightness(1.06);}
+.musicBtn:active{transform:translateY(0px) scale(1.00);}
+
+.musicBtn::before{content:"";position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:18px;height:10px;border-radius:6px;border:1px solid rgba(255,255,255,.55);background-color:rgba(230,230,230,.85);background-image:linear-gradient(to bottom, rgba(255,255,255,.85), rgba(200,200,200,.70));box-shadow:0 10px 18px rgba(0,0,0,.12);}
+.musicBtn::after{content:"";position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:2px;height:12px;border-radius:2px;background-color:rgba(255,255,255,.70);box-shadow:0 10px 18px rgba(0,0,0,.10);}
+
+.musicBtn.playing{background-color:rgb(14,144,84);background-image:radial-gradient(circle at 28% 22%, rgba(255,255,255,.95) 0 10%, rgba(255,255,255,.18) 18%, rgba(255,255,255,0) 36%),radial-gradient(circle at 50% 70%, rgb(64,210,140) 0 12%, rgb(14,144,84) 55%, rgb(6,84,50) 100%);box-shadow:0 0 140px rgba(255,210,120,.95),0 0 70px rgba(255,255,255,.30),0 16px 30px rgba(0,0,0,.22),inset 0 10px 18px rgba(255,255,255,.18),inset 0 -12px 16px rgba(0,0,0,.22);animation:ornPulse 1.35s ease-in-out infinite;}
+
+@keyframes ornPulse{0%{filter:brightness(1.00) saturate(1.10);}50%{filter:brightness(1.08) saturate(1.25);}100%{filter:brightness(1.00) saturate(1.10);}}
+
+.volSlider{width:120px;height:8px;appearance:none;-webkit-appearance:none;border-radius:999px;outline:none;cursor:pointer;border:1px solid rgba(255,255,255,.55);background-color:rgba(255,255,255,.30);background-image:linear-gradient(to right, rgba(255,210,120,.75), rgba(255,255,255,.18));box-shadow:inset 0 8px 14px rgba(0,0,0,.10);}
+.volSlider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:18px;height:18px;border-radius:999px;background-color:rgba(255,255,255,.92);border:1px solid rgba(31,35,40,.18);box-shadow:0 12px 22px rgba(0,0,0,.18);}
+.volSlider::-moz-range-thumb{width:18px;height:18px;border-radius:999px;background-color:rgba(255,255,255,.92);border:1px solid rgba(31,35,40,.18);box-shadow:0 12px 22px rgba(0,0,0,.18);}
+
+@media (max-width:600px){.musicWrap{top:8px;left:8px;gap:8px;padding:7px 9px;}.musicBtn{width:42px;height:42px;}.volSlider{width:92px;}}
+
+/* адаптация под телефон (iPhone 17 условно) */
+@media (max-width: 600px) {
+  .topBar {
+    padding: 10px 12px;
+  }
+
+
+  .pill {
+    padding: 7px 10px;
+  }
+
+  .hubStage {
+    padding-top: 66px;
+  }
+
+  .doorsOverlay {
+    height: auto;
+    bottom: 12px;
+    align-items: stretch;
+    padding: 0 12px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .doorHit {
+    width: auto;
+    height: 92px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .45);
+    border: 1px solid rgba(255, 255, 255, .55);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, .14);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .doorStatus {
+    top: 10px;
+    transform: translateX(-50%);
+    gap: 6px;
+  }
+
+  .badge {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .roomStage {
+    padding-top: 74px;
+  }
+
+  .questPanel {
+    margin: 12px 0 24px;
+  }
+
+  .cardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .memGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

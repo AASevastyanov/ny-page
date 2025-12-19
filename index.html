@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Новогодняя почта</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body data-view="intro" data-door="0" data-step="0">
+  <div class="musicWrap" aria-label="Музыка">
+    <button id="musicBtn" class="musicBtn" type="button" aria-label="Музыка">♪</button>
+    <input id="volSlider" class="volSlider" type="range" min="0" max="100" value="30" aria-label="Громкость" />
+  </div>
+  <audio id="bgm" preload="none"></audio>
+
+
+  <!-- Экран 1: Письмо -->
+  <main id="introView" class="view intro">
+    <div class="letterWrap">
+      <article class="letter" aria-label="Письмо от Деда Мороза">
+        <h1 class="letterTitle">Новогодняя почта</h1>
+        <div class="letterText">
+          <p><b>Привет, внученька!</b> Это я, Дед Мороз.</p>
+          <p>
+            В этом году я спрятал твой сладкий новогодний подарок внутри маленького волшебного квеста.
+            Каждый день ты будешь открывать одну дверь, решать уютные загадки и собирать фрагмент секретного кода.
+          </p>
+          <p>
+            А на четвертый день последняя дверь откроет магическую фразу - скажи ее своему парню и подарок появится!
+          </p>
+          <p><b>Готова?</b> Будь смелой, любопытной и держи новогоднее настроение!</p>
+        </div>
+        <div class="letterActions">
+          <button id="beginBtn" class="btn primary">Я готова - начинаем!</button>
+          <button id="skipIntroBtn" class="btn ghost" type="button">Пропустить</button>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <!-- Экран 2: Главная с 4 дверями (фон - картинка на весь экран) -->
+  <main id="hubView" class="view hub">
+    <header class="topBar">
+      <div class="topLeft">
+        <div class="brand">Новогодняя почта</div>
+      </div>
+
+      <div class="topRight">
+        <div class="pill">Фрагменты: <b id="frags">_ _ _</b></div>
+        <button id="hintsBtn" class="btn ghost" type="button">Подсказки</button>
+        <button id="resetBtn" class="btn ghost" type="button" title="Сбросить прогресс">Сброс</button>
+      </div>
+    </header>
+
+    <section class="hubStage" aria-label="Двери">
+      <div id="doorsRow" class="doorsOverlay"></div>
+    </section>
+  </main>
+
+  <!-- Экран 3-6: Внутри двери (фон - картинка на весь экран) -->
+  <main id="doorView" class="view door">
+    <header class="topBar">
+      <div class="topLeft">
+        <button id="backToHubBtn" class="btn ghost" type="button">Назад к дверям</button>
+        <div class="pill">Комната: <b id="roomName">-</b></div>
+      </div>
+
+      <div class="topRight">
+        <div class="pill">Шаг: <b id="stepInfo">-</b></div>
+        <button id="doorHintsBtn" class="btn ghost" type="button">Подсказки</button>
+      </div>
+    </header>
+
+    <section class="roomStage">
+      <section class="questPanel">
+        <div class="questHead">
+          <div>
+            <div id="panelTitle" class="questTitle">-</div>
+            <div class="questSub">Пройди 3 шага, чтобы получить фрагмент сегодняшнего кода.</div>
+          </div>
+
+          <div class="stepper" aria-label="прогресс">
+            <div class="stepDot" data-i="1"></div>
+            <div class="stepDot" data-i="2"></div>
+            <div class="stepDot" data-i="3"></div>
+          </div>
+        </div>
+
+        <div id="content" class="questBody"></div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Подсказки -->
+  <dialog id="hintsDlg" class="dlg">
+    <div class="dlgHead">
+      <div class="dlgTitle">Подсказки</div>
+      <button id="closeHintsBtn" class="btn ghost" type="button">Закрыть</button>
+    </div>
+    <div id="hintsBody" class="dlgBody"></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
