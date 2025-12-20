@@ -112,6 +112,8 @@ const musicBtn = document.getElementById("musicBtn");
 const volSlider = document.getElementById("volSlider");
 const bgm = document.getElementById("bgm");
 
+
+
 // Положи свои mp3 в assets/music/ и пропиши имена тут
 const PLAYLIST = [
   "assets/music/track1.mp3",
@@ -202,16 +204,26 @@ function setDoor(day) {
   document.body.dataset.door = String(day);
 }
 
-function setStep(step) {
+function setStep(step, total = 3) {
   document.body.dataset.step = String(step);
+  document.body.dataset.stepTotal = String(total);
+
   stepDots.forEach((dot) => {
     const i = Number(dot.dataset.i);
-    dot.classList.remove("on", "done");
+    dot.classList.remove("on", "done", "off");
+
+    if (i > total) {
+      dot.classList.add("off");
+      return;
+    }
+
     if (i < step) dot.classList.add("done");
     if (i === step) dot.classList.add("on");
   });
-  stepInfoEl.textContent = `${step}/3`;
+
+  stepInfoEl.textContent = `${step}/${total}`;
 }
+
 
 function renderHud() {
   // на новой верстке в хедере остались только "Фрагменты"
@@ -219,6 +231,13 @@ function renderHud() {
     .map((d) => (state.frags[d] ? state.frags[d] : "_"))
     .join(" ");
 }
+
+function giveFrag(day, fragDigit) {
+  state.frags[day] = String(fragDigit);
+  saveBase();
+  renderHud();
+}
+
 
 function award(day, fragDigit) {
   state.solved[day] = true;
@@ -301,7 +320,7 @@ const doors = [
   {
     day: 2,
     name: "Галерея снежинок",
-    desc: "Загадки, найди отличия, память с буквами.",
+    desc: "Загадки, найди отличия, кто что любит, найди слова, память с буквами.",
     frag: "7",
     run: runDay2,
   },
@@ -682,10 +701,11 @@ function runDay2() {
   const saved = JSON.parse(localStorage.getItem(memKey) || "{}");
   const step = saved.step || 1;
 
+  const TOTAL = 5;
   const replay = !!saved.replay;
 
   if (state.solved[2] && !replay) {
-    setStep(3);
+    setStep(TOTAL, TOTAL);
     contentEl.innerHTML = `
       <div class="board">
         <h3 class="boardTitle">Уже пройдено</h3>
@@ -701,15 +721,18 @@ function runDay2() {
   }
 
   if (openDay() < 2) {
-    setStep(1);
-    contentEl.innerHTML = `<div class="board"><h3 class="boardTitle">Закрыто</h3><p class="small">Эта дверь откроется в 12:00.</p></div>`;
+    setStep(1, TOTAL);
+    contentEl.innerHTML = `<div class="board"><h3 class="boardTitle">Пока закрыто</h3><p class="small">Эта дверь откроется в 12:00.</p></div>`;
     return;
   }
 
   if (step === 1) d2_step1(memKey);
   if (step === 2) d2_step2(memKey);
   if (step === 3) d2_step3(memKey);
+  if (step === 4) d2_step4(memKey);
+  if (step === 5) d2_step5(memKey);
 }
+
 
 function d2_save(memKey, step, extra = {}) {
   const prev = JSON.parse(localStorage.getItem(memKey) || "{}");
@@ -718,7 +741,8 @@ function d2_save(memKey, step, extra = {}) {
 }
 
 function d2_step1(memKey) {
-  setStep(1);
+  setStep(1, 5);
+
 
   const riddles = [
     {
@@ -780,7 +804,8 @@ function d2_step1(memKey) {
 }
 
 function d2_step2(memKey) {
-  setStep(2);
+  setStep(2, 5);
+
 
   const LEFT_IMG = "assets/diff-left.jpg";
   const RIGHT_IMG = "assets/diff-right.jpg";
@@ -951,8 +976,345 @@ function postcardScene(isRight) {
   `;
 }
 
+
 function d2_step3(memKey) {
-  setStep(3);
+  setStep(3, 5);
+
+  // Поменяй пути под свои файлы:
+  const girlPhoto = "assets/love/girl.png"; // фото девушки (слева)
+  const mePhoto = "assets/love/me.png";     // твое фото (справа)
+
+  // Картинки под словами: assets/love/<key>.png
+  const items = [
+    { key: "mandarin", label: "мандарин", who: "d" },
+    { key: "choco", label: "шоколадки", who: "d" },
+    { key: "burger", label: "бургер", who: "m" },
+    { key: "grapes", label: "большой виноград", who: "d" },
+    { key: "sprite", label: "спрайт", who: "m" },
+    { key: "snow", label: "снег", who: "m" },
+    { key: "candle", label: "свечка", who: "d" },
+    { key: "mmdms", label: "mmdms", who: "d" },
+    { key: "gifts", label: "находить подарки", who: "d" },
+    { key: "goodmix", label: "goodmix", who: "m" },
+  ];
+
+  let idx = 0;
+  const picks = [];
+  const chips = [];
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 3 - Кто что любит (10 слов)</h3>
+      <p class="small">Смотри на слово и картинку - кликни по мешку слева к Снегурочке или справа к Дед Морозу, куда это положить.</p>
+
+      <div class="loveWrap">
+        <div class="loveSide">
+          <img class="lovePhoto" src="${girlPhoto}" alt="девушка">
+          <div class="bagSlot" id="slotD" role="button" aria-label="мешок девушки">
+            <div class="bagTitle">Снегурочка</div>
+            <div class="bagChips" id="chipsD"></div>
+          </div>
+        </div>
+
+        <div class="loveCenter">
+          <div class="loveCard">
+            <div class="loveTop">
+              <img id="loveImg" class="loveItemImg" alt="">
+            </div>
+            <div class="loveWord" id="loveWord"></div>
+
+            <div class="row">
+              <span class="badge locked">Слова: <b id="loveCount">0</b>/10</span>
+              <button class="btn ghost" id="undoLove" type="button">Отменить последний</button>
+            </div>
+
+            <div id="loveMsg" class="small"></div>
+            <div class="hr"></div>
+
+            <button class="btn" id="checkLove" type="button" style="display:none">Проверить</button>
+            <button class="btn ghost" id="retryLove" type="button" style="display:none">Начать заново</button>
+          </div>
+        </div>
+
+        <div class="loveSide">
+          <img class="lovePhoto" src="${mePhoto}" alt="я">
+          <div class="bagSlot" id="slotM" role="button" aria-label="мой мешок">
+            <div class="bagTitle">Дед Мороз</div>
+            <div class="bagChips" id="chipsM"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const slotD = document.getElementById("slotD");
+  const slotM = document.getElementById("slotM");
+  const chipsD = document.getElementById("chipsD");
+  const chipsM = document.getElementById("chipsM");
+  const loveImg = document.getElementById("loveImg");
+  const loveWord = document.getElementById("loveWord");
+  const loveCount = document.getElementById("loveCount");
+  const loveMsg = document.getElementById("loveMsg");
+  const undoBtn = document.getElementById("undoLove");
+  const checkBtn = document.getElementById("checkLove");
+  const retryBtn = document.getElementById("retryLove");
+
+  function curImgSrc(it) {
+    return `assets/love/${it.key}.png`;
+  }
+
+  function renderCurrent() {
+    const it = items[idx];
+    loveImg.src = curImgSrc(it);
+    loveImg.alt = it.label;
+    loveWord.textContent = it.label;
+    loveCount.textContent = String(idx);
+    loveMsg.textContent = `Слово ${idx + 1} из ${items.length}`;
+  }
+
+  function addChip(side, label) {
+    const el = document.createElement("span");
+    el.className = "chip";
+    el.textContent = label;
+    if (side === "d") chipsD.appendChild(el);
+    else chipsM.appendChild(el);
+    chips.push({ side, el });
+  }
+
+  function place(side) {
+    if (idx >= items.length) return;
+
+    const it = items[idx];
+    picks.push({ key: it.key, pick: side, correct: it.who, label: it.label });
+    addChip(side, it.label);
+
+    idx++;
+    loveCount.textContent = String(idx);
+
+    if (idx >= items.length) {
+      loveMsg.innerHTML = `<b>Все слова разложены.</b> Нажми "Проверить".`;
+      loveImg.style.display = "none";
+      loveWord.style.display = "none";
+      checkBtn.style.display = "inline-block";
+      retryBtn.style.display = "inline-block";
+      return;
+    }
+
+    renderCurrent();
+  }
+
+  function undo() {
+    if (picks.length === 0) return;
+    picks.pop();
+    const lastChip = chips.pop();
+    if (lastChip?.el) lastChip.el.remove();
+    idx = Math.max(0, idx - 1);
+
+    loveImg.style.display = "";
+    loveWord.style.display = "";
+    checkBtn.style.display = "none";
+    retryBtn.style.display = "none";
+    renderCurrent();
+  }
+
+  function check() {
+    const wrong = picks.filter((p) => p.pick !== p.correct);
+    if (wrong.length === 0) {
+      loveMsg.innerHTML = `<b style="color:var(--green)">Идеально!</b> Переходим дальше.`;
+      setTimeout(() => {
+        d2_save(memKey, 4);
+        runDay2();
+      }, 650);
+      return;
+    }
+    const list = wrong.map((w) => `- ${w.label}`).join("<br>");
+    loveMsg.innerHTML = `<b style="color:var(--red)">Есть ошибки.</b><br>${list}<br><span class="small">Исправь через "Отменить последний" или начни заново.</span>`;
+  }
+
+  slotD.onclick = () => place("d");
+  slotM.onclick = () => place("m");
+  undoBtn.onclick = undo;
+  checkBtn.onclick = check;
+  retryBtn.onclick = () => d2_step3(memKey);
+
+  renderCurrent();
+}
+
+function d2_step4(memKey) {
+  setStep(4, 5);
+
+  const SIZE = 10;
+  const words = ["ЕЛКА", "СНЕГ", "ПОДАРОК", "САНКИ", "ЗВЕЗДА", "ГИРЛЯНДА"];
+  const ABC = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЫЭЮЯ";
+
+  const grid = Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => ""));
+  function putWord(w, r, c, dr, dc) {
+    for (let i = 0; i < w.length; i++) grid[r + dr * i][c + dc * i] = w[i];
+  }
+
+  putWord("ГИРЛЯНДА", 0, 1, 0, 1);
+  putWord("ПОДАРОК", 2, 0, 0, 1);
+  putWord("СНЕГ", 1, 9, 1, 0);
+  putWord("САНКИ", 4, 0, 1, 0);
+  putWord("ЗВЕЗДА", 9, 4, 0, 1);
+  putWord("ЕЛКА", 5, 2, 1, 0);
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (!grid[r][c]) grid[r][c] = ABC[Math.floor(Math.random() * ABC.length)];
+    }
+  }
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 4 - Найди слова (10x10)</h3>
+      <p class="small">Выделяй буквы кликом по порядку (слово должно идти по прямой). Найди 6 слов.</p>
+
+      <div class="row">
+        <span class="badge locked">Найдено: <b id="wsFound">0</b>/6</span>
+        <button class="btn ghost" id="wsClear" type="button">Стереть выбор</button>
+      </div>
+
+      <div class="wsWrap">
+        <div id="wsGrid" class="wsGrid"></div>
+        <div class="wsSide">
+          <div class="badge locked">Текущее: <b id="wsCur">_</b></div>
+          <div class="hr"></div>
+          <div id="wsList" class="wsList"></div>
+          <div class="hr"></div>
+          <div id="wsMsg" class="small"></div>
+          <button class="btn" id="wsNext" type="button" style="display:none">Дальше</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const wsGrid = document.getElementById("wsGrid");
+  const wsCur = document.getElementById("wsCur");
+  const wsList = document.getElementById("wsList");
+  const wsMsg = document.getElementById("wsMsg");
+  const wsFound = document.getElementById("wsFound");
+  const wsClear = document.getElementById("wsClear");
+  const wsNext = document.getElementById("wsNext");
+
+  const found = new Set();
+  const foundCells = new Set();
+
+  let sel = [];
+  let dir = null;
+
+  function key(r, c) { return `${r},${c}`; }
+
+  function renderList() {
+    wsList.innerHTML = words.map((w) => {
+      const ok = found.has(w);
+      return `<div class="wsWord ${ok ? "ok" : ""}">${ok ? "✅" : "⬜"} ${w}</div>`;
+    }).join("");
+    wsFound.textContent = String(found.size);
+  }
+
+  function selectionText() {
+    return sel.map((p) => grid[p.r][p.c]).join("");
+  }
+
+  function isNeighbor(a, b) {
+    const dr = b.r - a.r;
+    const dc = b.c - a.c;
+    if (dr === 0 && dc === 0) return null;
+    if (Math.abs(dr) > 1 || Math.abs(dc) > 1) return null;
+    return { dr, dc };
+  }
+
+  function renderGrid() {
+    wsGrid.innerHTML = "";
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "wsCell";
+        b.textContent = grid[r][c];
+
+        const k = key(r, c);
+        if (foundCells.has(k)) b.classList.add("found");
+        if (sel.some((p) => p.r === r && p.c === c)) b.classList.add("sel");
+
+        b.onclick = () => onCell(r, c);
+        wsGrid.appendChild(b);
+      }
+    }
+  }
+
+  function onCell(r, c) {
+    const k = key(r, c);
+    if (foundCells.has(k)) return;
+
+    if (sel.length && sel[sel.length - 1].r === r && sel[sel.length - 1].c === c) {
+      sel.pop();
+      if (sel.length < 2) dir = null;
+      wsCur.textContent = selectionText() || "_";
+      renderGrid();
+      return;
+    }
+
+    if (sel.some((p) => p.r === r && p.c === c)) return;
+
+    if (sel.length === 0) {
+      sel.push({ r, c });
+      dir = null;
+    } else if (sel.length === 1) {
+      const d = isNeighbor(sel[0], { r, c });
+      if (!d) return;
+      dir = d;
+      sel.push({ r, c });
+    } else {
+      const last = sel[sel.length - 1];
+      const wantR = last.r + dir.dr;
+      const wantC = last.c + dir.dc;
+      if (r !== wantR || c !== wantC) return;
+      sel.push({ r, c });
+    }
+
+    const text = selectionText();
+    wsCur.textContent = text || "_";
+    renderGrid();
+
+    if (words.includes(text) && !found.has(text)) {
+      found.add(text);
+      sel.forEach((p) => foundCells.add(key(p.r, p.c)));
+      sel = [];
+      dir = null;
+      wsCur.textContent = "_";
+      renderList();
+      renderGrid();
+
+      if (found.size === words.length) {
+        giveFrag(2, doors[1].frag);
+        wsMsg.innerHTML = `<b style="color:var(--green)">Готово!</b>`;
+        wsNext.style.display = "inline-block";
+      }
+    }
+  }
+
+  wsClear.onclick = () => {
+    sel = [];
+    dir = null;
+    wsCur.textContent = "_";
+    renderGrid();
+  };
+
+  wsNext.onclick = () => {
+    d2_save(memKey, 5);
+    runDay2();
+  };
+
+  renderList();
+  renderGrid();
+}
+
+
+function d2_step5(memKey) {
+  setStep(5, 5);
+  
 
   const targetWord = "НОВЫЙ";
   const pairs = [
@@ -983,7 +1345,8 @@ function d2_step3(memKey) {
 
   contentEl.innerHTML = `
     <div class="board">
-      <h3 class="boardTitle">Шаг 3 - Память (24 карточки)</h3>
+      <h3 class="boardTitle">Шаг 5 - Память (24 карточки)</h3>
+
       <p class="small">Собирай пары. Некоторые пары дают буквы. Угадай из букв слово и введи его.</p>
 
       <div class="row">
