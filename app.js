@@ -273,7 +273,7 @@ function renderHints() {
 
   if (od >= 1) lines.push(`<p><b>Дверь 1:</b> лишний предмет, фотопазл 4x4, викторина (нужно 8 из 10).</p>`);
   if (od >= 2) lines.push(`<p><b>Дверь 2:</b> загадки (4 из 5), отличия (5 штук), память (собери слово).</p>`);
-  if (od >= 3) lines.push(`<p><b>Дверь 3:</b> найди 3 улики, 3 раунда виселицы, квиз про парня (4 из 5).</p>`);
+  if (od >= 3) lines.push(`<p><b>Дверь 3:</b> найди 3 улики, 3 раунда виселицы, кто вор, пазл, квиз про парня (4 из 5).</p>`);
   if (od >= 4) lines.push(`<p><b>Дверь 4:</b> анаграмма, кодовый замок, финальная фраза.</p>`);
 
   lines.push(`<div class="hr"></div>`);
@@ -1446,10 +1446,11 @@ function runDay3() {
   const saved = JSON.parse(localStorage.getItem(memKey) || "{}");
   const step = saved.step || 1;
 
+  const TOTAL = 5;
   const replay = !!saved.replay;
 
   if (state.solved[3] && !replay) {
-    setStep(3);
+    setStep(TOTAL, TOTAL);
     contentEl.innerHTML = `
       <div class="board">
         <h3 class="boardTitle">Уже пройдено</h3>
@@ -1465,14 +1466,16 @@ function runDay3() {
   }
 
   if (openDay() < 3) {
-    setStep(1);
-    contentEl.innerHTML = `<div class="board"><h3 class="boardTitle">Закрыто</h3><p class="small">Эта дверь откроется в 12:00.</p></div>`;
+    setStep(1, TOTAL);
+    contentEl.innerHTML = `<div class="board"><h3 class="boardTitle">Пока закрыто</h3><p class="small">Эта дверь откроется в 12:00.</p></div>`;
     return;
   }
 
   if (step === 1) d3_step1(memKey);
   if (step === 2) d3_step2(memKey);
-  if (step === 3) d3_step3(memKey);
+  if (step === 3) d3_step3(memKey); // новая логика
+  if (step === 4) d3_step4(memKey); // новый пазл 14x8
+  if (step === 5) d3_step5(memKey); // бывший d3_step3 (квиз с фрагментом)
 }
 
 function d3_save(memKey, step, extra = {}) {
@@ -1482,7 +1485,7 @@ function d3_save(memKey, step, extra = {}) {
 }
 
 function d3_step1(memKey) {
-  setStep(1);
+  setStep(1,5);
 
   const found = new Set();
 
@@ -1537,7 +1540,7 @@ function d3_step1(memKey) {
 }
 
 function d3_step2(memKey) {
-  setStep(2);
+  setStep(2,5);
 
   const words = ["СНЕГ", "ЕЛКА", "ФЕЙЕРВЕРК"];
   let round = 0;
@@ -1675,7 +1678,470 @@ function maybeHint() {
 }
 
 function d3_step3(memKey) {
-  setStep(3);
+  setStep(3, 5);
+
+  // Правила: вор солгал в обеих фразах, каждый невиновный сказал 1 правду и 1 ложь.
+  // Решение по логике - вор: Олень.
+  const suspects = [
+    {
+      id: "dm",
+      name: "Дед Мороз",
+      s1: "Вор - Снегурочка.",
+      s2: "Вор - Дед Мороз, Олень или Снеговик."
+    },
+    {
+      id: "sg",
+      name: "Снегурочка",
+      s1: "Вор - Дед Мороз или Снегурочка.",
+      s2: "Вор - Дед Мороз, Олень или Снегурочка."
+    },
+    {
+      id: "sv",
+      name: "Снеговик",
+      s1: "Вор - Дед Мороз, Снегурочка или Снеговик.",
+      s2: "Вор - Олень или Снеговик."
+    },
+    {
+      id: "deer",
+      name: "Олень",
+      s1: "Вор - Снеговик.",
+      s2: "Вор - Дед Мороз или Снегурочка."
+    },
+  ];
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 3 - Кто украл подарок?</h3>
+      <p class="small">
+        Подарок исчез. Каждый сказал 2 фразы.
+        <br><b>Правило:</b> вор солгал в обеих фразах, каждый невиновный сказал 1 правду и 1 ложь.
+      </p>
+
+      <div class="quizQ">
+        ${suspects.map(p => `
+          <div class="q" style="margin-top:10px">${p.name}</div>
+          <div class="small">1) ${p.s1}</div>
+          <div class="small">2) ${p.s2}</div>
+        `).join("")}
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="q">Кто вор?</div>
+      <div class="quizA" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+        ${suspects.map(p => `
+          <label class="opt">
+            <input type="radio" name="thief" value="${p.id}">
+            <span>${p.name}</span>
+          </label>
+        `).join("")}
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="d3liarCheck" type="button">Проверить</button>
+        <button class="btn ghost" id="d3liarHint" type="button">Подсказка</button>
+        <span id="d3liarMsg" class="small"></span>
+      </div>
+    </div>
+  `;
+
+  const msg = document.getElementById("d3liarMsg");
+  let hintsUsed = 0;
+
+  document.getElementById("d3liarHint").onclick = () => {
+    hintsUsed++;
+    if (hintsUsed === 1) {
+      msg.innerHTML = `Подсказка: у невиновных ровно <b>по одной</b> правде, значит у троих будет схема <b>1T+1F</b>, а у вора <b>0T+2F</b>.`;
+      return;
+    }
+    msg.innerHTML = `Подсказка 2: попробуй предположить "вор - Снегурочка" и сразу проверь, сколько людей тогда вынуждены сказать <b>2 правды</b> или <b>2 лжи</b> - правило это запрещает.`;
+  };
+
+  document.getElementById("d3liarCheck").onclick = () => {
+    const pick = document.querySelector('input[name="thief"]:checked')?.value;
+    if (!pick) {
+      msg.innerHTML = `<b style="color:var(--red)">Выбери подозреваемого.</b>`;
+      return;
+    }
+    if (pick === "deer") {
+      msg.innerHTML = `<b style="color:var(--green)">Верно.</b> Дальше - пазл.`;
+      setTimeout(() => {
+        d3_save(memKey, 4);
+        runDay3();
+      }, 650);
+    } else {
+      msg.innerHTML = `<b style="color:var(--red)">Не сходится с правилом.</b> Попробуй другой вариант.`;
+    }
+  };
+}
+
+function d3_step4(memKey) {
+  setStep(4, 5);
+
+  // Путь к твоей картинке (положишь сам)
+  const IMG_SRC = "assets/day3-puzzle.jpg";
+
+  const COLS = 10;
+  const ROWS = 6;
+  const TOTAL = COLS * ROWS;
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 4 - Пазл (10x6)</h3>
+      <p class="small">Справа появляется деталь - перетащи на холст. На холсте детали тоже можно таскать. Все защелкивается по сетке.</p>
+
+      <div class="row">
+        <span class="badge locked">Поставлено: <b id="pz2Placed">0</b>/${TOTAL}</span>
+        <button class="btn ghost" id="pz2Restart" type="button">Перезапуск</button>
+        <button class="btn primary" id="pz2Check" type="button" style="display:none">Проверить</button>
+        <span id="pz2Msg" class="small"></span>
+      </div>
+
+      <div class="pz2Wrap">
+        <div id="pz2Board" class="pz2Board">
+          <div class="pz2Grid"></div>
+        </div>
+
+        <div class="pz2Side">
+          <div class="badge locked">Текущая деталь</div>
+          <div class="pz2Slot" id="pz2Slot"></div>
+          <div class="pz2Hint">Подсказка: удобнее попадать ближе к центру клетки.</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const board = document.getElementById("pz2Board");
+  const slot = document.getElementById("pz2Slot");
+  const placedEl = document.getElementById("pz2Placed");
+  const msgEl = document.getElementById("pz2Msg");
+  const btnRestart = document.getElementById("pz2Restart");
+  const btnCheck = document.getElementById("pz2Check");
+
+  const img = new Image();
+  img.src = IMG_SRC;
+
+  // вычислим пиксели после загрузки (board реальный размер зависит от экрана)
+  let boardW = 0, boardH = 0, pieceW = 0, pieceH = 0;
+
+  // Картинка будет "cover" обрезана под 5:3, мы делаем один общий dataURL и режем его CSS'ом
+  let croppedDataUrl = null;
+
+  // очередь деталей (случайный порядок)
+  let queue = [];
+  let qIndex = 0;
+
+  // состояние размещения
+  const occ = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => null)); // occ[r][c]=pieceId
+  const pieces = new Map(); // id -> {el, cr, cc, r, c} (cr/cc correct, r/c current or null)
+  let placedCount = 0;
+
+  function computeSizes() {
+    const r = board.getBoundingClientRect();
+    boardW = r.width;
+    boardH = r.height;
+    pieceW = boardW / COLS;
+    pieceH = boardH / ROWS;
+  }
+
+  function makeCroppedDataUrl() {
+    // рисуем img в offscreen canvas boardW x boardH с cover crop
+    const cnv = document.createElement("canvas");
+    cnv.width = Math.round(boardW);
+    cnv.height = Math.round(boardH);
+    const ctx = cnv.getContext("2d");
+
+    const cW = cnv.width, cH = cnv.height;
+    const iW = img.width, iH = img.height;
+    const cR = cW / cH;
+    const iR = iW / iH;
+
+    let sx = 0, sy = 0, sW = iW, sH = iH;
+    if (iR > cR) {
+      sW = Math.floor(iH * cR);
+      sx = Math.floor((iW - sW) / 2);
+    } else {
+      sH = Math.floor(iW / cR);
+      sy = Math.floor((iH - sH) / 2);
+    }
+
+    ctx.drawImage(img, sx, sy, sW, sH, 0, 0, cW, cH);
+    croppedDataUrl = cnv.toDataURL("image/jpeg", 0.92);
+  }
+
+  function reset() {
+    pieces.clear();
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) occ[r][c] = null;
+    placedCount = 0;
+    placedEl.textContent = "0";
+    msgEl.textContent = "";
+    btnCheck.style.display = "none";
+    board.querySelectorAll(".pz2Piece").forEach((p) => p.remove());
+    slot.innerHTML = "";
+
+    queue = Array.from({ length: TOTAL }, (_, i) => i);
+    for (let i = queue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [queue[i], queue[j]] = [queue[j], queue[i]];
+    }
+    qIndex = 0;
+
+    showNextPieceInSlot();
+  }
+
+  function pieceIdToRC(id) {
+    const cr = Math.floor(id / COLS);
+    const cc = id % COLS;
+    return { cr, cc };
+  }
+
+  function createPieceEl(id) {
+    const { cr, cc } = pieceIdToRC(id);
+    const el = document.createElement("div");
+    el.className = "pz2Piece";
+    el.dataset.id = String(id);
+
+    el.style.width = `${pieceW}px`;
+    el.style.height = `${pieceH}px`;
+
+    el.style.backgroundImage = `url("${croppedDataUrl}")`;
+    el.style.backgroundSize = `${boardW}px ${boardH}px`;
+    el.style.backgroundPosition = `${-cc * pieceW}px ${-cr * pieceH}px`;
+
+    // позицию зададим позже
+    return { el, cr, cc };
+  }
+
+  function snapToCell(el, r, c) {
+    el.style.left = `${c * pieceW}px`;
+    el.style.top = `${r * pieceH}px`;
+  }
+
+  function cellFromDrop(pageX, pageY) {
+    const br = board.getBoundingClientRect();
+    const cx = pageX - br.left;
+    const cy = pageY - br.top;
+    const c = Math.floor(cx / pieceW);
+    const r = Math.floor(cy / pieceH);
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
+    return { r, c };
+  }
+
+  function makeDraggable(el) {
+  let dragging = false;
+  let offsetX = 0, offsetY = 0;
+  let from = null; // {r,c} или null (если из слота)
+
+  function cleanup(winMove, winUp, pointerId) {
+    window.removeEventListener("pointermove", winMove);
+    window.removeEventListener("pointerup", winUp);
+    try { el.releasePointerCapture(pointerId); } catch {}
+    el.classList.remove("dragging");
+    el.style.zIndex = "1";
+    if (board.style.overflow === "visible") {
+      board.style.overflow = board.dataset.ovPrev || "";
+      delete board.dataset.ovPrev;
+    }
+  }
+
+  el.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+
+    computeSizes();
+    dragging = true;
+    el.classList.add("dragging");
+    el.style.zIndex = "50";
+
+    const rect = el.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    const id = Number(el.dataset.id);
+    const st = pieces.get(id);
+    from = (st && st.r != null) ? { r: st.r, c: st.c } : null;
+
+    // если тянем из slot - сразу переносим на board и делаем overflow видимым
+    if (from == null) {
+      const br = board.getBoundingClientRect();
+      board.dataset.ovPrev = board.style.overflow || "";
+      board.style.overflow = "visible";
+
+      el.style.position = "absolute";
+      board.appendChild(el);
+
+      const x = e.clientX - br.left - offsetX;
+      const y = e.clientY - br.top - offsetY;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+    }
+
+    // pointer capture + глобальные слушатели (самое надежное)
+    try { el.setPointerCapture(e.pointerId); } catch {}
+
+    const winMove = (ev) => {
+      if (!dragging) return;
+      ev.preventDefault();
+
+      const br = board.getBoundingClientRect();
+      const x = ev.clientX - br.left - offsetX;
+      const y = ev.clientY - br.top - offsetY;
+
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+    };
+
+    const winUp = (ev) => {
+      if (!dragging) return;
+      dragging = false;
+
+      const id2 = Number(el.dataset.id);
+      const st2 = pieces.get(id2);
+
+      const cell = cellFromDrop(ev.clientX, ev.clientY);
+
+      // если отпустили вне поля
+      if (!cell) {
+        if (from == null) {
+          // вернуть в slot
+          slot.innerHTML = "";
+          slot.appendChild(el);
+          el.style.position = "relative";
+          el.style.left = "0";
+          el.style.top = "0";
+        } else {
+          snapToCell(el, from.r, from.c);
+        }
+        cleanup(winMove, winUp, e.pointerId);
+        return;
+      }
+
+      const occId = occ[cell.r][cell.c];
+      const isNew = (from == null);
+
+      if (occId != null) {
+        if (isNew) {
+          msgEl.innerHTML = `<b style="color:var(--red)">Клетка занята.</b> Поставь в пустую.`;
+          slot.innerHTML = "";
+          slot.appendChild(el);
+          el.style.position = "relative";
+          el.style.left = "0";
+          el.style.top = "0";
+          cleanup(winMove, winUp, e.pointerId);
+          return;
+        }
+
+        // swap
+        const other = pieces.get(occId);
+        const old = from;
+
+        occ[other.r][other.c] = id2;
+        other.r = old.r; other.c = old.c;
+        snapToCell(other.el, other.r, other.c);
+
+        occ[cell.r][cell.c] = id2;
+        st2.r = cell.r; st2.c = cell.c;
+        snapToCell(el, st2.r, st2.c);
+
+        occ[old.r][old.c] = occId;
+
+        cleanup(winMove, winUp, e.pointerId);
+        return;
+      }
+
+      // свободно
+      if (isNew) {
+        st2.r = cell.r; st2.c = cell.c;
+        occ[cell.r][cell.c] = id2;
+        snapToCell(el, st2.r, st2.c);
+
+        placedCount++;
+        placedEl.textContent = String(placedCount);
+        msgEl.textContent = "";
+
+        showNextPieceInSlot();
+        if (placedCount === TOTAL) btnCheck.style.display = "inline-block";
+
+        cleanup(winMove, winUp, e.pointerId);
+        return;
+      }
+
+      // переезд в свободную клетку
+      occ[from.r][from.c] = null;
+      st2.r = cell.r; st2.c = cell.c;
+      occ[cell.r][cell.c] = id2;
+      snapToCell(el, st2.r, st2.c);
+
+      cleanup(winMove, winUp, e.pointerId);
+    };
+
+    window.addEventListener("pointermove", winMove, { passive: false });
+    window.addEventListener("pointerup", winUp, { passive: false });
+  });
+}
+
+
+  function showNextPieceInSlot() {
+    slot.innerHTML = "";
+
+    if (qIndex >= queue.length) {
+      slot.innerHTML = `<div class="small">Все детали уже на поле.</div>`;
+      return;
+    }
+
+    const id = queue[qIndex++];
+    const { el, cr, cc } = createPieceEl(id);
+
+    pieces.set(id, { el, cr, cc, r: null, c: null });
+
+    // в слоте - относительное позиционирование
+    el.style.position = "relative";
+    el.style.left = "0";
+    el.style.top = "0";
+
+    makeDraggable(el);
+    slot.appendChild(el);
+  }
+
+  function isSolved() {
+    for (const [id, st] of pieces.entries()) {
+      if (st.r == null || st.c == null) return false;
+      if (st.r !== st.cr || st.c !== st.cc) return false;
+    }
+    return true;
+  }
+
+  btnRestart.onclick = () => reset();
+
+  btnCheck.onclick = () => {
+    if (placedCount !== TOTAL) {
+      msgEl.innerHTML = `<b style="color:var(--red)">Еще не все детали на поле.</b>`;
+      return;
+    }
+    if (isSolved()) {
+      msgEl.innerHTML = `<b style="color:var(--green)">Пазл собран.</b> Дальше - последний шаг.`;
+      setTimeout(() => {
+        d3_save(memKey, 5);
+        runDay3();
+      }, 650);
+    } else {
+      msgEl.innerHTML = `<b style="color:var(--red)">Пока не собрано.</b> Перетаскивай детали - они должны встать на свои места.`;
+    }
+  };
+
+  img.onload = () => {
+    computeSizes();
+    makeCroppedDataUrl();
+    reset();
+  };
+
+  img.onerror = () => {
+    msgEl.innerHTML = `<b style="color:var(--red)">Не могу загрузить картинку.</b> Проверь путь: ${IMG_SRC}`;
+  };
+}
+
+
+function d3_step5(memKey) {
+  setStep(5,5);
 
   const quiz = boyfriendQuizData();
 

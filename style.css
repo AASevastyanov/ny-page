@@ -778,6 +778,54 @@ body[data-view="hub"] .musicWrap, body[data-view="intro"] .musicWrap{left:10px;t
 }
 .wsWord.ok { background: rgba(255,255,255,.22); }
 
+/* Door 3 - Drag puzzle 10x6 */
+.pz2Wrap { display: grid; grid-template-columns: 1fr 260px; gap: 14px; align-items: start; margin-top: 10px; }
+.pz2Board {
+  position: relative;
+  width: 800px;
+  max-width: 100%;
+  aspect-ratio: 5 / 3; /* 10:6 */
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.18);
+  overflow: hidden;
+  background: rgba(255,255,255,.06);
+  user-select: none;
+  touch-action: none;
+}
+.pz2Grid {
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(to right, rgba(255,255,255,.14) 0, rgba(255,255,255,.14) 1px, transparent 1px, transparent 10%),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.14) 0, rgba(255,255,255,.14) 1px, transparent 1px, transparent 16.6667%);
+  pointer-events: none;
+}
+.pz2Piece {
+  position: absolute;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.22);
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+  background-repeat: no-repeat;
+  cursor: grab;
+  touch-action: none;
+}
+.pz2Piece.dragging { cursor: grabbing; opacity: .92; }
+.pz2Side { display: flex; flex-direction: column; gap: 10px; }
+.pz2Slot {
+  width: 100%;
+  height: 180px;
+  border-radius: 14px;
+  border: 2px dashed rgba(255,255,255,.35);
+  background: rgba(255,255,255,.08);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.pz2Hint { font-size: 12px; opacity: .9; }
+@media (max-width: 900px) { .pz2Wrap { grid-template-columns: 1fr; } }
+
+
+
+
 @media (max-width: 900px) {
   .loveWrap { grid-template-columns: 1fr; }
   .wsWrap { grid-template-columns: 1fr; }
