@@ -2210,28 +2210,55 @@ function boyfriendQuizData() {
 // -----------------------------
 function runDay4() {
   panelTitleEl.textContent = "Дверь 4 - Сейф финального подарка";
-
-  if (openDay() < 4) {
-    setStep(1);
-    contentEl.innerHTML = `<div class="board"><h3 class="boardTitle">Закрыто</h3><p class="small">Эта дверь откроется в 12:00.</p></div>`;
-    return;
-  }
-
   const memKey = LS.day4;
   const saved = JSON.parse(localStorage.getItem(memKey) || "{}");
   const step = saved.step || 1;
 
-  if (step === 1) d4_step1(memKey);
-  if (step === 2) d4_step2(memKey);
-  if (step === 3) d4_step3();
+  const TOTAL = 11;
+  const replay = !!saved.replay;
+
+  if (state.solved[4] && !replay) {
+    setStep(TOTAL, TOTAL);
+    contentEl.innerHTML = `
+      <div class="board">
+        <h3 class="boardTitle">Уже пройдено</h3>
+        <p class="small">Финал получен ✅</p>
+        <button class="btn ghost" id="redo4" type="button">Пройти уровень снова</button>
+      </div>
+    `;
+    document.getElementById("redo4").onclick = () => {
+      localStorage.setItem(memKey, JSON.stringify({ step: 1, replay: true }));
+      runDay4();
+    };
+    return;
+  }
+
+  if (openDay() < 4) {
+    setStep(1, TOTAL);
+    contentEl.innerHTML = `<div class="board"><h3 class="boardTitle">Пока закрыто</h3><p class="small">Эта дверь откроется в 12:00.</p></div>`;
+    return;
+  }
+
+  if (step === 1) d4_step1(memKey);   // анаграмма
+  if (step === 2) d4_step2(memKey);   // найди предметы (3 фото)
+  if (step === 3) d4_step3(memKey);   // код по теням
+  if (step === 4) d4_step4(memKey);   // теплее-холоднее + снег
+  if (step === 5) d4_step5(memKey);   // сортировка подарков
+  if (step === 6) d4_step6(memKey);   // снежки по мишеням
+  if (step === 7) d4_step7(memKey);   // лабиринт
+  if (step === 8) d4_step8(memKey);   // открой коробки
+  if (step === 9) d4_step9(memKey);   // угадай мелодию (аудио)
+  if (step === 10) d4_step10(memKey); // ТВОЙ СТАРЫЙ ЗАМОК (ввод цифр)
+  if (step === 11) d4_step11(memKey); // ТВОЙ СТАРЫЙ ФИНАЛ
 }
+
 
 function d4_save(memKey, step, extra = {}) {
   localStorage.setItem(memKey, JSON.stringify({ step, ...extra }));
 }
 
 function d4_step1(memKey) {
-  setStep(1);
+  setStep(1, 11);
 
   const anagram = "О Д П Р О К А";
   const answer = "ПОДАРОК";
@@ -2266,7 +2293,698 @@ function d4_step1(memKey) {
 }
 
 function d4_step2(memKey) {
-  setStep(2);
+  setStep(2, 11);
+  
+  const stages = [
+    {
+      img: "assets/day4/find-1.jpg",
+      items: [
+        { id: "a", img: "assets/day4/find-items/1-a.png", x: 0.8961, y: 0.6077, r: 0.05 },
+        { id: "b", img: "assets/day4/find-items/1-b.png", x: 0.3743, y: 0.5068, r: 0.05 },
+        { id: "c", img: "assets/day4/find-items/1-c.png", x: 0.6284, y: 0.4456, r: 0.05 },
+      ],
+    },
+    {
+      img: "assets/day4/find-2.jpg",
+      items: [
+        { id: "a", img: "assets/day4/find-items/2-a.png", x: 0.9299, y: 0.3481, r: 0.05 },
+        { id: "b", img: "assets/day4/find-items/2-b.png", x: 0.1527, y: 0.5324, r: 0.05 },
+        { id: "c", img: "assets/day4/find-items/2-c.png", x: 0.6451, y: 0.2924, r: 0.05 },
+        { id: "d", img: "assets/day4/find-items/2-d.png", x: 0.2125, y: 0.3672, r: 0.05 },
+      ],
+    },
+    {
+      img: "assets/day4/find-3.jpg",
+      items: [
+        { id: "a", img: "assets/day4/find-items/3-a.png", x: 0.6179, y: 0.2248, r: 0.05 },
+        { id: "b", img: "assets/day4/find-items/3-b.png", x: 0.0614, y: 0.5022, r: 0.05 },
+        { id: "c", img: "assets/day4/find-items/3-c.png", x: 0.4266, y: 0.8782, r: 0.05 },
+        { id: "d", img: "assets/day4/find-items/3-d.png", x: 0.7082, y: 0.5588, r: 0.05 },
+        { id: "e", img: "assets/day4/find-items/3-e.png", x: 0.9429, y: 0.3087, r: 0.05 },
+      ],
+    },
+  ];
+
+  let stageIdx = 0;
+  const found = new Set();
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 2 - Найди предметы по списку</h3>
+      <p class="small">Кликай по предметам на фото: 1-е фото - 3 предмета, 2-е - 4, 3-е - 5.</p>
+
+      <div class="row">
+        <span class="badge locked">Фото: <b id="hoStage">1</b>/3</span>
+        <span class="badge locked">Найдено: <b id="hoCount">0</b>/<b id="hoNeed">0</b></span>
+        <button class="btn ghost" id="hoReset" type="button">Сбросить на этом фото</button>
+      </div>
+
+      <div class="d4Grid2" style="margin-top:10px">
+        <div class="hoImgWrap" id="hoImgWrap" style="max-width:920px">
+          <img class="hoImg" id="hoImg" alt="поиск предметов">
+        </div>
+
+        <div class="hoSide">
+          <div class="badge locked">Список</div>
+          <div class="hoList" id="hoList"></div>
+          <div class="hr"></div>
+          <div class="small" id="hoMsg"></div>
+          <button class="btn primary" id="hoNext" type="button" style="display:none">Следующее фото</button>
+          <button class="btn primary" id="hoDone" type="button" style="display:none">Дальше</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const hoStage = document.getElementById("hoStage");
+  const hoCount = document.getElementById("hoCount");
+  const hoNeed = document.getElementById("hoNeed");
+  const hoReset = document.getElementById("hoReset");
+  const hoImgWrap = document.getElementById("hoImgWrap");
+  const hoImg = document.getElementById("hoImg");
+  const hoList = document.getElementById("hoList");
+  const hoMsg = document.getElementById("hoMsg");
+  const hoNext = document.getElementById("hoNext");
+  const hoDone = document.getElementById("hoDone");
+
+  function getImgBox() {
+    const wrapR = hoImgWrap.getBoundingClientRect();
+    const imgR = hoImg.getBoundingClientRect();
+    return {
+      wrapR,
+      offX: imgR.left - wrapR.left,
+      offY: imgR.top - wrapR.top,
+      w: imgR.width,
+      h: imgR.height,
+    };
+  }
+
+
+  function clearMarks() {
+    hoImgWrap.querySelectorAll(".hoMark").forEach((m) => m.remove());
+  }
+
+  function render() {
+    found.clear();
+    clearMarks();
+
+    const st = stages[stageIdx];
+    hoStage.textContent = String(stageIdx + 1);
+    hoNeed.textContent = String(st.items.length);
+    hoCount.textContent = "0";
+    hoMsg.textContent = " ";
+
+    hoImg.src = st.img;
+
+    hoList.innerHTML = st.items.map((it) => `
+      <div class="hoItem" data-id="${it.id}">
+        <img class="hoThumb" src="${it.img}" alt="">
+        <div class="hoItemTxt">${it.title || ""}</div>
+      </div>
+    `).join("");
+
+
+    hoNext.style.display = "none";
+    hoDone.style.display = "none";
+  }
+
+  function markFound(it) {
+    found.add(it.id);
+
+    const row = hoList.querySelector(`.hoItem[data-id="${it.id}"]`);
+    if (row) {
+      row.classList.add("ok");
+      const imgEl = row.querySelector("img");
+      if (imgEl) imgEl.style.opacity = "0.45";
+      const txt = row.querySelector(".hoItemTxt");
+      if (txt) txt.textContent = "✅";
+    }
+
+    const m = document.createElement("div");
+    const wrapR = hoImgWrap.getBoundingClientRect();
+    const imgR = hoImg.getBoundingClientRect();
+    m.style.left = `${(imgR.left - wrapR.left) + it.x * imgR.width}px`;
+    m.style.top  = `${(imgR.top  - wrapR.top)  + it.y * imgR.height}px`;
+
+    hoImgWrap.appendChild(m);
+
+    hoCount.textContent = String(found.size);
+
+    const st = stages[stageIdx];
+    if (found.size === st.items.length) {
+      if (stageIdx < stages.length - 1) {
+        hoMsg.innerHTML = `<b style="color:var(--green)">Готово!</b> Переходим к следующему фото.`;
+        hoNext.style.display = "inline-block";
+      } else {
+        hoMsg.innerHTML = `<b style="color:var(--green)">Все фото пройдены!</b>`;
+        hoDone.style.display = "inline-block";
+      }
+    }
+  }
+
+  function onClick(e) {
+    const st = stages[stageIdx];
+    const rect = hoImg.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    for (const it of st.items) {
+      if (found.has(it.id)) continue;
+      const dx = x - it.x;
+      const dy = y - it.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= it.r) { markFound(it); return; }
+    }
+  }
+
+  hoImgWrap.onclick = onClick;
+  hoReset.onclick = () => render();
+  hoNext.onclick = () => { stageIdx++; render(); };
+  hoDone.onclick = () => { d4_save(memKey, 3); runDay4(); };
+  
+  render();
+}
+function d4_step3(memKey) {
+  setStep(3, 11);
+
+  const cards = [
+    { id: "star", img: "assets/day4/shadows/star.png", answer: "Звезда" },
+    { id: "bell", img: "assets/day4/shadows/snow.png", answer: "Снеговик" },
+    { id: "sock", img: "assets/day4/shadows/sock.png", answer: "Носок" },
+    { id: "tree", img: "assets/day4/shadows/tree.png", answer: "Елка" },
+    { id: "gift", img: "assets/day4/shadows/gift.png", answer: "Подарок" },
+    { id: "candy", img: "assets/day4/shadows/candy.png", answer: "Конфета" },
+  ];
+
+  const options = ["Звезда","Колокольчик","Носок","Елка","Подарок","Конфета","Снеговик","Шапка"];
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 3 - Код по теням</h3>
+      <p class="small">Под каждой тенью выбери правильный предмет.</p>
+
+      <div class="shadowGrid" id="shGrid"></div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="shCheck" type="button">Проверить</button>
+        <span class="small" id="shMsg"></span>
+      </div>
+    </div>
+  `;
+
+  const grid = document.getElementById("shGrid");
+  const msg = document.getElementById("shMsg");
+
+  grid.innerHTML = cards.map((c) => `
+    <div class="shadowCard">
+      <img class="shadowImg" src="${c.img}" alt="тень">
+      <select class="shadowSel" data-id="${c.id}">
+        <option value="">Выбрать...</option>
+        ${options.map(o => `<option value="${o}">${o}</option>`).join("")}
+      </select>
+    </div>
+  `).join("");
+
+  document.getElementById("shCheck").onclick = () => {
+    let ok = 0;
+    for (const c of cards) {
+      const v = grid.querySelector(`select[data-id="${c.id}"]`)?.value || "";
+      if (v === c.answer) ok++;
+    }
+    if (ok === cards.length) {
+      msg.innerHTML = `<b style="color:var(--green)">Верно.</b> Дальше.`;
+      setTimeout(() => { d4_save(memKey, 4); runDay4(); }, 650);
+    } else {
+      msg.innerHTML = `<b style="color:var(--red)">Ошибки:</b> ${ok}/${cards.length}`;
+    }
+  };
+}
+function d4_step4(memKey) {
+  setStep(4, 11);
+
+  const IMG = "assets/day4/hotcold.jpg"; // твое фото
+  const target = { x: 0.62, y: 0.48, r: 0.04 }; // поменяешь
+
+  let prevDist = null;
+  let attempts = 0;
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 4 - Теплее-холоднее</h3>
+      <p class="small">На фото спрятана точка. Кликай - я скажу теплее/холоднее. Найди точку.</p>
+
+      <div class="row">
+        <span class="badge locked">Попыток: <b id="hcTry">0</b></span>
+        <span class="small" id="hcMsg"></span>
+      </div>
+
+      <div class="snowStage" id="hcStage" style="margin-top:10px">
+        <img class="snowBg" id="hcImg" src="${IMG}" alt="фон">
+        <div class="snowLayer"></div>
+      </div>
+    </div>
+  `;
+
+  const stage = document.getElementById("hcStage");
+  const msg = document.getElementById("hcMsg");
+  const tries = document.getElementById("hcTry");
+
+  function mark(x, y) {
+    stage.querySelectorAll(".hotMark").forEach(m => m.remove());
+    const m = document.createElement("div");
+    m.className = "hotMark";
+    m.style.left = `${x * 100}%`;
+    m.style.top = `${y * 100}%`;
+    stage.appendChild(m);
+  }
+
+  stage.onclick = (e) => {
+    const rect = stage.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    attempts++;
+    tries.textContent = String(attempts);
+
+    const dx = x - target.x;
+    const dy = y - target.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    mark(x, y);
+
+    if (dist <= target.r) {
+      msg.innerHTML = `<b style="color:var(--green)">Нашла!</b>`;
+      setTimeout(() => { d4_save(memKey, 5); runDay4(); }, 650);
+      return;
+    }
+
+    if (prevDist == null) {
+      msg.textContent = "Старт. Пробуй еще.";
+    } else {
+      msg.textContent = dist < prevDist ? "Теплее 🔥" : "Холоднее ❄️";
+    }
+    prevDist = dist;
+  };
+}
+
+function d4_step5(memKey) {
+  setStep(5, 11);
+
+  const NEED_HITS = 8;
+  const TOTAL_TARGETS = 10;
+
+  let hits = 0;
+  let shown = 0;
+  let active = true;
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 6 - Снежки по мишеням</h3>
+      <p class="small">Успей попасть по 8 из 10 мишеней.</p>
+
+      <div class="row">
+        <span class="badge locked">Попаданий: <b id="sbHits">0</b>/${NEED_HITS}</span>
+        <span class="badge locked">Мишеней: <b id="sbShown">0</b>/${TOTAL_TARGETS}</span>
+        <button class="btn ghost" id="sbRestart" type="button">Перезапуск</button>
+      </div>
+
+      <div class="snowArena" id="sbArena" style="margin-top:10px"></div>
+      <div class="small" id="sbMsg"></div>
+    </div>
+  `;
+
+  const arena = document.getElementById("sbArena");
+  const elHits = document.getElementById("sbHits");
+  const elShown = document.getElementById("sbShown");
+  const msg = document.getElementById("sbMsg");
+
+  let t = null;
+
+  function clear() {
+    arena.innerHTML = "";
+    hits = 0; shown = 0; active = true;
+    elHits.textContent = "0";
+    elShown.textContent = "0";
+    msg.textContent = "";
+    if (t) clearInterval(t);
+    spawnLoop();
+  }
+
+  function spawnOne() {
+    if (!active) return;
+    if (shown >= TOTAL_TARGETS) return;
+
+    shown++;
+    elShown.textContent = String(shown);
+
+    const a = arena.getBoundingClientRect();
+    const x = Math.random() * (a.width - 70) + 10;
+    const y = Math.random() * (a.height - 70) + 10;
+
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "target";
+    b.style.left = `${x}px`;
+    b.style.top = `${y}px`;
+    b.textContent = "🎯";
+
+    let killed = false;
+
+    const life = setTimeout(() => {
+      if (killed) return;
+      b.remove();
+      if (shown === TOTAL_TARGETS) finish();
+    }, 1200);
+
+    b.onclick = () => {
+      if (killed) return;
+      killed = true;
+      clearTimeout(life);
+      b.remove();
+      hits++;
+      elHits.textContent = String(hits);
+      if (hits >= NEED_HITS) win();
+      else if (shown === TOTAL_TARGETS) finish();
+    };
+
+    arena.appendChild(b);
+  }
+
+  function spawnLoop() {
+    t = setInterval(() => {
+      if (shown >= TOTAL_TARGETS) { clearInterval(t); return; }
+      spawnOne();
+    }, 650);
+  }
+
+  function win() {
+    active = false;
+    if (t) clearInterval(t);
+    msg.innerHTML = `<b style="color:var(--green)">Победа.</b> Дальше.`;
+    setTimeout(() => { d4_save(memKey, 6); runDay4(); }, 650);
+  }
+
+  function finish() {
+    active = false;
+    if (hits >= NEED_HITS) return win();
+    msg.innerHTML = `<b style="color:var(--red)">Не хватило.</b> Попробуй еще раз.`;
+  }
+
+  document.getElementById("sbRestart").onclick = clear;
+  clear();
+}
+function d4_step6(memKey) {
+  setStep(6, 11);
+
+  const map = [
+    "############",
+    "#S..#......#",
+    "#.#.#.####.#",
+    "#.#...#....#",
+    "#.#####.####",
+    "#.....#....#",
+    "###.#.######",
+    "#...##.....#",
+    "#.####.###.#",
+    "#......#...#",
+    "#.####.#.G.#",
+    "############",
+  ];
+
+  const H = map.length;
+  const W = map[0].length;
+
+  let you = { r: 0, c: 0 };
+  let goal = { r: 0, c: 0 };
+
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      if (map[r][c] === "S") you = { r, c };
+      if (map[r][c] === "G") goal = { r, c };
+    }
+  }
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 7 - Лабиринт</h3>
+      <p class="small">Доведите Деда Мороза до цели. Можно стрелками или кнопками.</p>
+
+      <div class="d4Grid2" style="margin-top:10px">
+        <div>
+          <div class="maze" id="maze"></div>
+          <div style="margin-top:12px" class="mazePad">
+            <div></div><button class="btn ghost" id="mUp" type="button">↑</button><div></div>
+            <button class="btn ghost" id="mLeft" type="button">←</button>
+            <button class="btn ghost" id="mDown" type="button">↓</button>
+            <button class="btn ghost" id="mRight" type="button">→</button>
+          </div>
+        </div>
+        <div>
+          <div class="badge locked">Ты: 🎅</div>
+          <div class="badge locked" style="margin-top:8px">Финиш: 🎁</div>
+          <div class="hr"></div>
+          <div class="small" id="mMsg"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const mazeEl = document.getElementById("maze");
+  const msg = document.getElementById("mMsg");
+
+  function isWall(r, c) { return map[r][c] === "#"; }
+
+  function render() {
+    mazeEl.innerHTML = "";
+    for (let r = 0; r < H; r++) {
+      for (let c = 0; c < W; c++) {
+        const cell = document.createElement("div");
+        cell.className = "mazeCell";
+        if (isWall(r,c)) cell.classList.add("wall");
+        if (r === goal.r && c === goal.c) cell.classList.add("goal");
+        if (r === you.r && c === you.c) cell.classList.add("you");
+        mazeEl.appendChild(cell);
+      }
+    }
+  }
+
+  function move(dr, dc) {
+    const nr = you.r + dr;
+    const nc = you.c + dc;
+    if (nr < 0 || nr >= H || nc < 0 || nc >= W) return;
+    if (isWall(nr, nc)) return;
+    you = { r: nr, c: nc };
+    render();
+    if (you.r === goal.r && you.c === goal.c) {
+      msg.innerHTML = `<b style="color:var(--green)">Нашла выход.</b> Дальше.`;
+      window.removeEventListener("keydown", onKey);
+      setTimeout(() => { d4_save(memKey, 7); runDay4(); }, 650);
+    }
+  }
+
+  function onKey(e) {
+    if (e.key === "ArrowUp") move(-1,0);
+    if (e.key === "ArrowDown") move(1,0);
+    if (e.key === "ArrowLeft") move(0,-1);
+    if (e.key === "ArrowRight") move(0,1);
+  }
+
+  document.getElementById("mUp").onclick = () => move(-1,0);
+  document.getElementById("mDown").onclick = () => move(1,0);
+  document.getElementById("mLeft").onclick = () => move(0,-1);
+  document.getElementById("mRight").onclick = () => move(0,1);
+
+  window.addEventListener("keydown", onKey);
+  render();
+}
+function d4_step7(memKey) {
+  setStep(7, 11);
+
+  const TOTAL = 12;
+  const GOOD = 6;
+  const MAX_OPENS = 10;
+
+  let openCount = 0;
+  let foundGood = 0;
+  let state = [];
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 8 - Открой коробки</h3>
+      <p class="small">Найди все хорошие предметы. Открытий максимум ${MAX_OPENS}.</p>
+
+      <div class="row">
+        <span class="badge locked">Открыто: <b id="bxOpen">0</b>/${MAX_OPENS}</span>
+        <span class="badge locked">Найдено: <b id="bxGood">0</b>/${GOOD}</span>
+        <button class="btn ghost" id="bxRestart" type="button">Перезапуск</button>
+      </div>
+
+      <div class="boxGrid" id="bxGrid" style="margin-top:10px"></div>
+      <div class="small" id="bxMsg"></div>
+    </div>
+  `;
+
+  const grid = document.getElementById("bxGrid");
+  const elOpen = document.getElementById("bxOpen");
+  const elGood = document.getElementById("bxGood");
+  const msg = document.getElementById("bxMsg");
+
+  function init() {
+    openCount = 0;
+    foundGood = 0;
+    elOpen.textContent = "0";
+    elGood.textContent = "0";
+    msg.textContent = "";
+
+    // 0 empty, 1 good, 2 prank
+    state = Array.from({ length: TOTAL }, () => ({ kind: 0, open: false }));
+    const idxs = Array.from({ length: TOTAL }, (_, i) => i);
+    for (let i = idxs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
+    }
+    for (let i = 0; i < GOOD; i++) state[idxs[i]].kind = 1;
+    for (let i = GOOD; i < GOOD + 3; i++) state[idxs[i]].kind = 2;
+
+    render();
+  }
+
+  function render() {
+    grid.innerHTML = "";
+    for (let i = 0; i < TOTAL; i++) {
+      const b = document.createElement("div");
+      b.className = "boxCard" + (state[i].open ? " open" : "");
+      b.dataset.i = String(i);
+      b.innerHTML = `<div class="boxEmoji">${state[i].open ? (state[i].kind===1 ? "🎁" : state[i].kind===2 ? "😈" : "❄️") : "📦"}</div>`;
+      grid.appendChild(b);
+    }
+  }
+
+  grid.onclick = (e) => {
+    const card = e.target.closest(".boxCard");
+    if (!card) return;
+    const i = Number(card.dataset.i);
+    if (state[i].open) return;
+    if (openCount >= MAX_OPENS) return;
+
+    state[i].open = true;
+    openCount++;
+    elOpen.textContent = String(openCount);
+
+    if (state[i].kind === 1) {
+      foundGood++;
+      elGood.textContent = String(foundGood);
+    }
+
+    render();
+
+    if (foundGood === GOOD) {
+      msg.innerHTML = `<b style="color:var(--green)">Все найдено.</b> Дальше.`;
+      setTimeout(() => { d4_save(memKey, 8); runDay4(); }, 650);
+      return;
+    }
+
+    if (openCount >= MAX_OPENS && foundGood < GOOD) {
+      msg.innerHTML = `<b style="color:var(--red)">Лимит открытий.</b> Перезапуск.`;
+    }
+  };
+
+  document.getElementById("bxRestart").onclick = init;
+  init();
+}
+function d4_step8(memKey) {
+  setStep(8, 11);
+
+  const questions = [
+    {
+      audio: "assets/day4/musicgame/track1.mp3",
+      answer: "Jingle Bells",
+      options: ["Jingle Bells", "Last Christmas", "We Wish You a Merry Christmas", "Let It Snow"],
+    },
+    {
+      audio: "assets/day4/musicgame/track2.mp3",
+      answer: "Last Christmas",
+      options: ["Jingle Bells", "Last Christmas", "Happy New Year", "Let It Snow"],
+    },
+    {
+      audio: "assets/day4/musicgame/track3.mp3",
+      answer: "Let It Snow",
+      options: ["Let It Snow", "All I Want for Christmas Is You", "Happy New Year", "Santa Baby"],
+    },
+  ];
+
+  let i = 0;
+  let audio = null;
+
+  contentEl.innerHTML = `
+    <div class="board">
+      <h3 class="boardTitle">Шаг 9 - Угадай мелодию</h3>
+      <p class="small">Нажми "Играть" и выбери правильное название.</p>
+
+      <div class="row">
+        <button class="btn primary" id="mPlay" type="button">Играть</button>
+        <button class="btn ghost" id="mStop" type="button">Стоп</button>
+        <span class="badge locked">Вопрос: <b id="mIdx">1</b>/${questions.length}</span>
+      </div>
+
+      <div class="melodyOpts" id="mOpts" style="margin-top:12px"></div>
+      <div class="small" id="mMsg"></div>
+    </div>
+  `;
+
+  const elIdx = document.getElementById("mIdx");
+  const elOpts = document.getElementById("mOpts");
+  const elMsg = document.getElementById("mMsg");
+
+  function loadQ() {
+    if (audio) { audio.pause(); audio.currentTime = 0; }
+    const q = questions[i];
+    elIdx.textContent = String(i + 1);
+    elMsg.textContent = "";
+    elOpts.innerHTML = q.options.map(o => `
+      <button class="btn ghost" type="button" data-opt="${o}">${o}</button>
+    `).join("");
+    audio = new Audio(q.audio);
+    audio.volume = 0.8;
+  }
+
+  document.getElementById("mPlay").onclick = () => {
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  };
+  document.getElementById("mStop").onclick = () => {
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+  };
+
+  elOpts.onclick = (e) => {
+    const btn = e.target.closest("button[data-opt]");
+    if (!btn) return;
+    const pick = btn.dataset.opt;
+    const q = questions[i];
+
+    if (pick === q.answer) {
+      elMsg.innerHTML = `<b style="color:var(--green)">Верно.</b>`;
+      i++;
+      if (i >= questions.length) {
+        if (audio) { audio.pause(); audio.currentTime = 0; }
+        setTimeout(() => { d4_save(memKey, 10); runDay4(); }, 650);
+      } else {
+        setTimeout(loadQ, 450);
+      }
+    } else {
+      elMsg.innerHTML = `<b style="color:var(--red)">Не то.</b> Попробуй еще.`;
+    }
+  };
+
+  loadQ();
+}
+
+
+function d4_step9(memKey) {
+  setStep(9,11);
 
   const f1 = state.frags[1] || "";
   const f2 = state.frags[2] || "";
@@ -2280,7 +2998,7 @@ function d4_step2(memKey) {
 
   contentEl.innerHTML = `
     <div class="board">
-      <h3 class="boardTitle">Шаг 2 - Кодовый замок</h3>
+      <h3 class="boardTitle">Шаг 9 - Кодовый замок</h3>
       <p class="small">
         Код = фрагменты из Дверей 1-3 + последняя цифра.
         Последняя цифра: посчитай, сколько букв <b>О</b> в предложении ниже.
@@ -2318,7 +3036,7 @@ function d4_step2(memKey) {
 
     if (v === correct) {
       msg.innerHTML = `<b style="color:var(--green)">Верно.</b>`;
-      d4_save(memKey, 3);
+      d4_save(memKey, 11);
       setTimeout(() => runDay4(), 600);
       return;
     }
@@ -2337,12 +3055,12 @@ function d4_step2(memKey) {
   };
 }
 
-function d4_step3() {
-  setStep(3);
+function d4_step10() {
+  setStep(10,11);
 
   contentEl.innerHTML = `
     <div class="board">
-      <h3 class="boardTitle">Шаг 3 - Награда</h3>
+      <h3 class="boardTitle">Шаг 10 - Награда</h3>
       <p class="small">Финальная фраза открыта.</p>
 
       <div class="quizQ" style="text-align:center">
