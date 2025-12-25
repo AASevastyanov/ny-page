@@ -782,103 +782,143 @@ function d2_step1(memKey) {
 function d2_step2(memKey) {
   setStep(2);
 
+  const LEFT_IMG = "assets/diff-left.jpg";
+  const RIGHT_IMG = "assets/diff-right.jpg";
+  const NEED = 7;
+
+  // Включи, чтобы по клику показывало координаты (ты по ним и выставишь hotspots)
+  const DEBUG_COORDS = true;
+
+  // ВАЖНО: hotspots теперь в координатах правого фото (naturalWidth/naturalHeight)
   const hotspots = [
-    { x: 560, y: 120, r: 18 },
-    { x: 660, y: 180, r: 16 },
-    { x: 610, y: 260, r: 18 },
-    { x: 710, y: 290, r: 18 },
-    { x: 720, y: 140, r: 16 },
+    { x: 691, y: 487, r: 80 },
+    { x: 436, y: 131, r: 80 },
+    { x: 1436, y: 789, r: 60 },
+    { x: 1141, y: 793, r: 60 },
+    { x: 1237, y: 837, r: 60 },
+    { x: 955, y: 834, r: 60 },
+    { x: 1443, y: 114, r: 60 },
   ];
+
   const found = new Set();
 
   contentEl.innerHTML = `
     <div class="board">
       <h3 class="boardTitle">Шаг 2 - Найди отличия</h3>
-      <p class="small">Нажимай на отличия на <b>правой</b> открытке. Нужно найти 5.</p>
+      <p class="small">Нажимай на отличия на <b>правой</b> картинке. Нужно найти ${NEED}.</p>
       <div class="row">
-        <span class="badge locked">Найдено: <b id="dfN">0</b>/5</span>
+        <span class="badge locked">Найдено: <b id="dfN">0</b>/${NEED}</span>
         <span id="dfMsg" class="small"></span>
       </div>
 
-      <svg id="diffSvg" width="900" height="320" viewBox="0 0 900 320" style="max-width:100%; border-radius:18px; border:1px solid rgba(30,35,40,.12); background: rgba(255,255,255,.60)">
-        <g transform="translate(0,0)">
-          <rect x="20" y="20" width="400" height="280" rx="18" fill="rgba(255,255,255,.55)" stroke="rgba(30,35,40,.12)"/>
-          <text x="40" y="52" font-size="14" fill="rgba(31,35,40,.60)">Эталон</text>
-          ${postcardScene(false)}
-        </g>
+      <div class="diffRow">
+        <div class="diffCard">
+          <img id="dfLeftImg" src="${LEFT_IMG}" alt="Эталон">
+          <div class="diffLabel">Эталон</div>
+        </div>
 
-        <g transform="translate(460,0)" id="rightScene">
-          <rect x="20" y="20" width="400" height="280" rx="18" fill="rgba(255,255,255,.55)" stroke="rgba(30,35,40,.12)"/>
-          <text x="40" y="52" font-size="14" fill="rgba(31,35,40,.60)">Ищи отличия</text>
-          ${postcardScene(true)}
-        </g>
-
-        <g id="marks"></g>
-      </svg>
+        <div class="diffCard" id="dfRightCard">
+          <img id="dfRightImg" src="${RIGHT_IMG}" alt="Ищи отличия">
+          <div class="diffLabel">Ищи отличия</div>
+          <div class="diffMarks" id="dfMarks"></div>
+          <div class="diffOverlay" id="dfOverlay" aria-label="Поле клика"></div>
+        </div>
+      </div>
 
       <div class="row">
         <button class="btn primary" id="dfDone">Дальше</button>
       </div>
-    </div>
-  `;
-
-  const svg = document.getElementById("diffSvg");
-  const marks = document.getElementById("marks");
+    </div>`;
   const dfN = document.getElementById("dfN");
   const dfMsg = document.getElementById("dfMsg");
+  const rightImg = document.getElementById("dfRightImg");
+  const overlay = document.getElementById("dfOverlay");
+  const marks = document.getElementById("dfMarks");
 
-  svg.addEventListener("click", (e) => {
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const screenCTM = svg.getScreenCTM();
-    if (!screenCTM) return;
-    const p = pt.matrixTransform(screenCTM.inverse());
+  let BASE_W = 0;
+  let BASE_H = 0;
 
-    if (p.x < 460) return;
+  function ensureBaseSize() {
+    if (rightImg.naturalWidth && rightImg.naturalHeight) {
+      BASE_W = rightImg.naturalWidth;
+      BASE_H = rightImg.naturalHeight;
+    }
+  }
 
-    const rx = p.x;
-    const ry = p.y;
+  rightImg.addEventListener("load", ensureBaseSize);
+  ensureBaseSize();
+
+  function getImageXY(evt) {
+    const rect = overlay.getBoundingClientRect();
+    const x = (evt.clientX - rect.left) * (BASE_W / rect.width);
+    const y = (evt.clientY - rect.top) * (BASE_H / rect.height);
+    return { x, y, rect };
+  }
+
+  function addRing(h) {
+    const ring = document.createElement("div");
+    ring.className = "markRing";
+
+    const leftPct = (h.x / BASE_W) * 100;
+    const topPct = (h.y / BASE_H) * 100;
+    const wPct = ((h.r * 2) / BASE_W) * 100;
+    const hPct = ((h.r * 2) / BASE_H) * 100;
+
+    ring.style.left = leftPct + "%";
+    ring.style.top = topPct + "%";
+    ring.style.width = wPct + "%";
+    ring.style.height = hPct + "%";
+
+    marks.appendChild(ring);
+  }
+
+  overlay.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    ensureBaseSize();
+    if (!BASE_W || !BASE_H) return;
+
+    const { x, y } = getImageXY(e);
+
+    if (DEBUG_COORDS) {
+      dfMsg.innerHTML = `<span class="small">Координаты: <b>${Math.round(x)}</b>, <b>${Math.round(y)}</b></span>`;
+      console.log("DIFF CLICK:", Math.round(x), Math.round(y), "BASE:", BASE_W, BASE_H);
+    }
 
     let hit = -1;
-    hotspots.forEach((h, i) => {
-      const dx = rx - h.x;
-      const dy = ry - h.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= h.r) hit = i;
-    });
+    for (let i = 0; i < hotspots.length; i++) {
+      if (found.has(i)) continue;
+      const h = hotspots[i];
+      const dx = x - h.x;
+      const dy = y - h.y;
+      const R = (h.r ?? 18);
+      if (dx * dx + dy * dy <= R * R) { hit = i; break; }
+    }
 
     if (hit === -1) {
       dfMsg.innerHTML = `<b style="color:var(--red)">Мимо.</b>`;
       return;
-    }
-    if (found.has(hit)) return;
+      }
 
     found.add(hit);
     dfN.textContent = String(found.size);
     dfMsg.innerHTML = `<b style="color:var(--green)">Нашла.</b>`;
 
-    const h = hotspots[hit];
-    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    c.setAttribute("cx", String(h.x));
-    c.setAttribute("cy", String(h.y));
-    c.setAttribute("r", String(h.r));
-    c.setAttribute("fill", "none");
-    c.setAttribute("stroke", "rgba(209,169,73,.95)");
-    c.setAttribute("stroke-width", "4");
-    marks.appendChild(c);
-  });
+    addRing(hotspots[hit]);
+  }, { passive: false });
 
   document.getElementById("dfDone").onclick = () => {
-    if (found.size >= 5) {
+    if (found.size >= NEED) {
       setTimeout(() => {
         d2_save(memKey, 3);
         runDay2();
       }, 650);
     } else {
-      dfMsg.innerHTML = `<b style="color:var(--red)">Надо все 5.</b>`;
+      dfMsg.innerHTML = `<b style="color:var(--red)">Надо все ${NEED}.</b>`;
     }
   };
 }
+
+
 
 function postcardScene(isRight) {
   const starFill = isRight ? "rgba(209,169,73,.95)" : "rgba(31,35,40,.18)";
@@ -914,20 +954,20 @@ function postcardScene(isRight) {
 function d2_step3(memKey) {
   setStep(3);
 
-  const targetWord = "СЛАДКО";
+  const targetWord = "НОВЫЙ";
   const pairs = [
-    { sym: "❄️", letter: "С" },
-    { sym: "🍊", letter: "Л" },
-    { sym: "🍬", letter: "А" },
-    { sym: "🎁", letter: "Д" },
-    { sym: "🔔", letter: "К" },
-    { sym: "🎄", letter: "О" },
+    { sym: "❄️", letter: "Н" },
+    { sym: "🍊", letter: "О" },
+    { sym: "🍬", letter: "В" },
+    { sym: "🎁", letter: "Ы" },
+    { sym: "🔔", letter: "Й" },
+    { sym: "🎄", letter: "" },
     { sym: "🧤", letter: "" },
     { sym: "⭐", letter: "" },
     { sym: "🕯️", letter: "" },
-    { sym: "🦌", letter: "" },
+    { sym: "🦌", letter: "" }, 
     { sym: "🍪", letter: "" },
-    { sym: "🎀", letter: "" },
+    { sym: "🎅", letter: "" },
   ];
 
   let deck = [];
@@ -944,7 +984,7 @@ function d2_step3(memKey) {
   contentEl.innerHTML = `
     <div class="board">
       <h3 class="boardTitle">Шаг 3 - Память (24 карточки)</h3>
-      <p class="small">Собирай пары. Некоторые пары дают буквы. Собери буквы и введи слово.</p>
+      <p class="small">Собирай пары. Некоторые пары дают буквы. Угадай из букв слово и введи его.</p>
 
       <div class="row">
         <span class="badge locked">Буквы: <b id="letBar">${
@@ -1029,7 +1069,7 @@ function d2_step3(memKey) {
       wordMsg.innerHTML = `<b style="color:var(--green)">Открыто.</b> Фрагмент: <b>${doors[1].frag}</b>`;
       award(2, doors[1].frag);
     } else {
-      wordMsg.innerHTML = `<b style="color:var(--red)">Не то слово.</b> Подсказка: оно про подарок.`;
+      wordMsg.innerHTML = `<b style="color:var(--red)">Не то слово.</b> Подсказка: оно про приближающийся год.`;
     }
   };
 }
@@ -1142,6 +1182,7 @@ function d3_step2(memKey) {
   let tries = 6;
   let used = new Set();
   let mask = word.split("").map((_) => "_");
+  
 
   contentEl.innerHTML = `
     <div class="board">
@@ -1173,6 +1214,40 @@ function d3_step2(memKey) {
   const hu = document.getElementById("hu");
   const hmsg = document.getElementById("hmsg");
 
+  const hin = document.getElementById("hin");
+const hbtn = document.getElementById("hbtn");
+
+// Enter = Ок
+hin.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") hbtn.click();
+});
+
+function isVowel(ch) {
+  return "АЕЁИОУЫЭЮЯ".includes(ch);
+}
+function alphaBucket(ch) {
+  const a = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+  const idx = a.indexOf(ch);
+  if (idx === -1) return "буква необычная";
+  if (idx < a.length * 0.34) return "буква ближе к началу алфавита";
+  if (idx < a.length * 0.67) return "буква ближе к середине алфавита";
+  return "буква ближе к концу алфавита";
+}
+function remainingUniqueLetters() {
+  const uniq = Array.from(new Set(word.split("")));
+  return uniq.filter(ch => !used.has(ch));
+}
+function maybeHint() {
+  const rem = remainingUniqueLetters();
+  if (tries === 1 && rem.length === 1 && !hintShown) {
+    const last = rem[0];
+    const v = isVowel(last) ? "гласная" : "согласная";
+    hmsg.innerHTML = `<b style="color:var(--gold)">Подсказка:</b> последняя буква - <b>${v}</b>, и ${alphaBucket(last)}.`;
+    hintShown = true;
+  }
+}
+
+
   function render() {
     hr.textContent = String(round + 1);
     hm.textContent = mask.join(" ");
@@ -1198,34 +1273,39 @@ function d3_step2(memKey) {
     render();
   }
 
-  document.getElementById("hbtn").onclick = () => {
-    const v = (document.getElementById("hin").value || "").trim().toUpperCase();
-    document.getElementById("hin").value = "";
-    if (!v) return;
-    if (used.has(v)) {
-      hmsg.textContent = "Эта буква уже была.";
-      return;
-    }
-    used.add(v);
+  hbtn.onclick = () => {
+  const v = (hin.value || "").trim().toUpperCase();
+  hin.value = "";
+  hin.focus();
+  if (!v) return;
 
-    if (word.includes(v)) {
-      word.split("").forEach((c, i) => {
-        if (c === v) mask[i] = c;
-      });
-      hmsg.innerHTML = `<b style="color:var(--green)">Есть.</b>`;
-      if (!mask.includes("_")) {
-        hmsg.innerHTML = `<b style="color:var(--green)">Слово угадано.</b> Следующий раунд.`;
-        setTimeout(nextRound, 650);
-      }
-    } else {
-      tries--;
-      hmsg.innerHTML = `<b style="color:var(--red)">Неа.</b>`;
-      if (tries <= 0) {
-        hmsg.innerHTML = `<b style="color:var(--red)">Попытки закончились.</b> Перезапусти шаг и попробуй снова.`;
-      }
+  if (used.has(v)) {
+    hmsg.textContent = "Эта буква уже была.";
+    return;
+  }
+  used.add(v);
+
+  if (word.includes(v)) {
+    word.split("").forEach((c, i) => {
+      if (c === v) mask[i] = c;
+    });
+    hmsg.innerHTML = `<b style="color:var(--green)">Есть.</b>`;
+    if (!mask.includes("_")) {
+      hmsg.innerHTML = `<b style="color:var(--green)">Слово угадано.</b> Следующий раунд.`;
+      setTimeout(nextRound, 650);
     }
-    render();
-  };
+  } else {
+    tries--;
+    hmsg.innerHTML = `<b style="color:var(--red)">Неа.</b>`;
+    if (tries <= 0) {
+      hmsg.innerHTML = `<b style="color:var(--red)">Попытки закончились.</b> Перезапусти шаг и попробуй снова.`;
+    }
+  }
+
+  maybeHint();
+  render();
+};
+
 
   document.getElementById("hretry").onclick = () => d3_step2(memKey);
   render();
@@ -1324,7 +1404,7 @@ function d4_save(memKey, step, extra = {}) {
 function d4_step1(memKey) {
   setStep(1);
 
-  const anagram = "П О Д А Р О К";
+  const anagram = "О Д П Р О К А";
   const answer = "ПОДАРОК";
 
   contentEl.innerHTML = `
@@ -1363,9 +1443,11 @@ function d4_step2(memKey) {
   const f2 = state.frags[2] || "";
   const f3 = state.frags[3] || "";
 
-  const clueText = "Подарок готов. Скоро Новый год. Открой дверь и улыбнись.";
-  const lastDigit = String((clueText.match(/о/gi) || []).length);
+  const clueText = "Подарок пришел. Скоро Новый год. Открой дверь и улыбнись.";
+  const oCount = (clueText.match(/о/gi) || []).length;
+  const lastDigit = 8; // если 10, то 0
   const correct = `${f1}${f2}${f3}${lastDigit}`;
+
 
   contentEl.innerHTML = `
     <div class="board">
